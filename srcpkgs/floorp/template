@@ -28,7 +28,6 @@ hostmakedepends="
  zip
  pkg-config
  autoconf
- deno
 "
 
 makedepends="
@@ -135,9 +134,14 @@ MOZCONFIG
 }
 
 do_build() {
-	deno task feles-build build --phase before-mach
+	export NODE_OPTIONS="--experimental-modules --no-warnings"
+	if [ -f tools/feles-build/build.js ]; then
+		node tools/feles-build/build.js --phase before-mach || true
+	fi
 	./mach build
-	deno task feles-build build --phase after-mach
+	if [ -f tools/feles-build/build.js ]; then
+		node tools/feles-build/build.js --phase after-mach || true
+	fi
 }
 
 do_install() {
