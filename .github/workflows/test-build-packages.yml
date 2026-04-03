@@ -75,9 +75,9 @@ jobs:
 
       - name: Download the rest of the packages
         run: |
-          gh release download latest --repo noid-linux/xbps-repo --dir ./old_releases
+          gh release download latest --repo ${{ github.repository }} --dir ./old_releases
 
-          rm -f ./old_releases/x86_64-repodata ./old_releases/*.sig2
+          rm -f ./old_releases/x86_64-repodata
 
           for pkg in `echo ${{ github.event.inputs.packages }} | tr ',' ' '`; do
             rm -f ./old_releases/"$pkg"*
@@ -88,23 +88,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sign and package
-        env:
-          PRIVATE_PEM: ${{ secrets.PRIVATE_PEM }}
-          PRIVATE_PEM_PASSPHRASE: ${{ secrets.PRIVATE_PEM_PASSPHRASE }}
+      - name: Build repository index
         run: |
           cd ~/packages
           xbps-rindex -a *
-          temp_key=$(mktemp)
-          echo "$PRIVATE_PEM" > "$temp_key"
-          export XBPS_PASSPHRASE=$PRIVATE_PEM_PASSPHRASE
-          chmod 600 "$temp_key"
-          xbps-rindex --privkey "$temp_key" --sign --signedby "void-packages-github-actions" ~/packages
-          xbps-rindex --privkey "$temp_key" --sign-pkg ~/packages/*.xbps
-          rm -f "$temp_key"
-
-          for pkg in $(ls -1 ~/release); do
-            cp "$pkg".sig2 ~/release
-          done
-
           cp x86_64-repodata ~/release
