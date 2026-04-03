@@ -87,7 +87,7 @@ depends="
 
 do_configure() {
 	# Install Deno
-	curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr/local sh -s -- --no-modify-path
+	curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr sh -s -- --no-modify-path
 	cat > ${wrksrc}/.mozconfig << 'MOZCONFIG'
 ac_add_options --enable-application=browser
 
@@ -137,7 +137,7 @@ MOZCONFIG
 }
 
 do_build() {
-	export PATH="/usr/local/bin:$PATH"
+	export PATH="/usr/bin:$PATH"
 	export DENO_DIR="/tmp/floorp-deno-cache"
 	deno task feles-build build --phase before-mach
 	./mach build
