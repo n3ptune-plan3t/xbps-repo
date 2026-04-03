@@ -9,8 +9,8 @@ license="MPL-2.0"
 homepage="https://floorp.app"
 
 # ── Source ────────────────────────────────────────────────────────────────────
-distfiles="https://github.com/Floorp-Projects/Floorp/releases/download/v${version}/floorp-linux-x86_64.tar.xz"
-checksum="a6f61ad904e8229ca4e709a30d38f2a0e6926dc3f82ddbe24efb8e0c1ba51910"
+distfiles="https://github.com/Floorp-Projects/Floorp/archive/refs/tags/v${version}.tar.gz"
+checksum="fe0b50524570f1ca6918e44d8b26fc92cb9d421c9693d23333601933845bd6da"
 
 # ── Build-time deps ───────────────────────────────────────────────────────────
 hostmakedepends="
@@ -28,7 +28,6 @@ hostmakedepends="
  zip
  pkg-config
  autoconf
- curl
 "
 
 makedepends="
@@ -86,8 +85,6 @@ depends="
 "
 
 do_configure() {
-	# Install Deno
-	curl -fsSL https://deno.land/install.sh | DENO_INSTALL=/usr sh -s -- --no-modify-path
 	cat > ${wrksrc}/.mozconfig << 'MOZCONFIG'
 ac_add_options --enable-application=browser
 
@@ -137,8 +134,6 @@ MOZCONFIG
 }
 
 do_build() {
-	export PATH="/usr/bin:$PATH"
-	export DENO_DIR="/tmp/floorp-deno-cache"
 	deno task feles-build build --phase before-mach
 	./mach build
 	deno task feles-build build --phase after-mach
