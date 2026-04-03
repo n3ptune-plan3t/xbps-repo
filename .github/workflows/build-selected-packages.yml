@@ -51,7 +51,7 @@ jobs:
       - name: Setup and build packages
         run: |
           # Setup void-packages
-          sed -i '1i repository=https://github.com/noid-linux/xbps-repo/releases/latest/download' void-packages/etc/xbps.d/repos-remote.conf
+          sed -i '1i repository=https://github.com/${{ github.repository }}/releases/latest/download' void-packages/etc/xbps.d/repos-remote.conf
           find void-packages -type f -exec sed -i "s/base-files/noid-base-files/g" {} +
           cp -r custom-packages/srcpkgs/* void-packages/srcpkgs/
           cd void-packages
@@ -76,9 +76,9 @@ jobs:
 
       - name: Download the rest of the packages
         run: |
-          gh release download latest --repo noid-linux/xbps-repo --dir ./old_releases
+          gh release download latest --repo ${{ github.repository }} --dir ./old_releases
 
-          rm -f ./old_releases/x86_64-repodata ./old_releases/*.sig2
+          rm -f ./old_releases/x86_64-repodata
 
           for pkg in `echo ${{ github.event.inputs.packages }} | tr ',' ' '`; do
             rm -f ./old_releases/"$pkg"*
@@ -89,25 +89,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Sign and package
-        env:
-          PRIVATE_PEM: ${{ secrets.PRIVATE_PEM }}
-          PRIVATE_PEM_PASSPHRASE: ${{ secrets.PRIVATE_PEM_PASSPHRASE }}
+      - name: Build repository index
         run: |
           cd ~/packages
           xbps-rindex -a *
-          temp_key=$(mktemp)
-          echo "$PRIVATE_PEM" > "$temp_key"
-          export XBPS_PASSPHRASE=$PRIVATE_PEM_PASSPHRASE
-          chmod 600 "$temp_key"
-          xbps-rindex --privkey "$temp_key" --sign --signedby "void-packages-github-actions" ~/packages
-          xbps-rindex --privkey "$temp_key" --sign-pkg ~/packages/*.xbps
-          rm -f "$temp_key"
-
-          for pkg in $(ls -1 ~/release); do
-            cp "$pkg".sig2 ~/release
-          done
-
           cp x86_64-repodata ~/release
 
       - name: Upload built packages
@@ -138,11 +123,11 @@ jobs:
 
       - name: Delete existing release assets
         run: |
-          gh release view latest --repo noid-linux/xbps-repo --json assets --jq '.assets[].name' \
+          gh release view latest --repo ${{ github.repository }} --json assets --jq '.assets[].name' \
           | rg "$(echo ${{ github.event.inputs.packages }} | tr ',' '|')" \
-          | xargs -I {} gh release delete-asset latest {} --repo noid-linux/xbps-repo --yes
+          | xargs -I {} gh release delete-asset latest {} --repo ${{ github.repository }} --yes
 
-          gh release delete-asset latest "x86_64-repodata" --repo noid-linux/xbps-repo --yes || true
+          gh release delete-asset latest "x86_64-repodata" --repo ${{ github.repository }} --yes || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -153,7 +138,6 @@ jobs:
         with:
           files: |
             /github/home/release/*.xbps
-            /github/home/release/*.sig2
             /github/home/release/x86_64-repodata
           tag_name: latest
           name: Latest Build
@@ -184,7 +168,7 @@ jobs:
   #     - name: Delete existing release
   #       run: |
   #         tea login add --name github-actions --url https://git.ch-naseem.com --token "$FORGEJO_TOKEN"
-  #         tea release delete --repo noid-linux/xbps-repo -y --delete-tag latest
+  #         tea release delete --repo ${{ github.repository }} -y --delete-tag latest
   #       env:
   #         FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
 
@@ -205,7 +189,7 @@ jobs:
   #         args+=(--asset /github/home/packages/x86_64-repodata)
 
   #         tea release create \
-  #           --repo noid-linux/xbps-repo \
+  #           --repo ${{ github.repository }} \
   #           --title "Latest Build" \
   #           --note "Latest build of XBPS packages Built on: ${{ github.event.repository.updated_at }}" \
   #           "${args[@]}" \

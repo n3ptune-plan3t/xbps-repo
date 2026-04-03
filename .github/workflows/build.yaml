@@ -57,7 +57,7 @@ jobs:
       - name: Prepare masterdir
         run: |
           cd void-packages
-          sed -i '1i repository=https://github.com/noid-linux/xbps-repo/releases/latest/download' \
+          sed -i '1i repository=https://github.com/${{ github.repository }}/releases/latest/download' \
             etc/xbps.d/repos-remote.conf
           chown -R builder:builder . &&
           sudo -Eu builder common/travis/set_mirror.sh &&
@@ -88,7 +88,7 @@ jobs:
       - name: Download the rest of the packages
         run: |
           gh release download latest \
-            --repo noid-linux/xbps-repo \
+            --repo ${{ github.repository }} \
             --dir ~/all_packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -96,27 +96,16 @@ jobs:
       - name: Merge packages
         shell: bash
         run: |
-          rm -f ~/all_packages/*.sig2
           for pkg in $(< /tmp/templates); do
             rm -f ~/all_packages/"$pkg"*.xbps
           done
           cp -r ~/packages ~/new_packages
           cp ~/all_packages/*.xbps ~/packages/
 
-      - name: Sign and package
-        env:
-          PRIVATE_PEM: ${{ secrets.PRIVATE_PEM }}
-          PRIVATE_PEM_PASSPHRASE: ${{ secrets.PRIVATE_PEM_PASSPHRASE }}
+      - name: Build repository index
         run: |
           cd ~/packages
           xbps-rindex -a *
-          temp_key=$(mktemp)
-          echo "$PRIVATE_PEM" > "$temp_key"
-          export XBPS_PASSPHRASE=$PRIVATE_PEM_PASSPHRASE
-          chmod 600 "$temp_key"
-          xbps-rindex --privkey "$temp_key" --sign --signedby "void-packages-github-actions" ~/packages
-          xbps-rindex --privkey "$temp_key" --sign-pkg ~/packages/*.xbps
-          rm -f "$temp_key"
 
       - name: Prepare release files
         shell: bash
@@ -124,9 +113,6 @@ jobs:
           mkdir ~/release
           cp ~/new_packages/* ~/release/
           cp ~/packages/x86_64-repodata ~/release
-          for pkg in $(< /tmp/templates); do
-            cp ~/packages/"$pkg"*.xbps.sig2 ~/release
-          done
 
       - name: Upload built packages
         uses: actions/upload-artifact@v4
@@ -139,11 +125,11 @@ jobs:
         shell: bash
         run: |
           for pkg in $(< /tmp/templates); do
-            gh release view latest --repo noid-linux/xbps-repo --json assets --jq '.assets[].name' \
-            | grep "^${pkg}-" | xargs -I {} gh release delete-asset latest {} --repo noid-linux/xbps-repo --yes || true
+            gh release view latest --repo ${{ github.repository }} --json assets --jq '.assets[].name' \
+            | grep "^${pkg}-" | xargs -I {} gh release delete-asset latest {} --repo ${{ github.repository }} --yes || true
           done
 
-          gh release delete-asset latest "x86_64-repodata" --repo noid-linux/xbps-repo --yes || true
+          gh release delete-asset latest "x86_64-repodata" --repo ${{ github.repository }} --yes || true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

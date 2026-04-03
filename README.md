@@ -1,31 +1,57 @@
-# Custom XBPS Repository
+# Personal XBPS Repository Template
 
-[![Build Packages](https://github.com/noid-linux/xbps-repo/actions/workflows/build.yaml/badge.svg)](https://github.com/noid-linux/xbps-repo/actions/workflows/build.yaml) [![Build Selected XBPS Package](https://github.com/noid-linux/xbps-repo/actions/workflows/build-selected-packages.yml/badge.svg)](https://github.com/noid-linux/xbps-repo/actions/workflows/build-selected-packages.yml) [![Test Build XBPS Packages](https://github.com/noid-linux/xbps-repo/actions/workflows/test-build-packages.yml/badge.svg)](https://github.com/noid-linux/xbps-repo/actions/workflows/test-build-packages.yml)
+This fork is set up for **personal use**:
 
-This repository contains custom XBPS packages.
+- `srcpkgs/` starts empty so you can add only your own package templates.
+- CI builds your packages and publishes them to the `latest` release.
+- Repository metadata is generated without private signing keys.
 
-> [!NOTE]
-> Some packages in this repository are repackaged from official upstream binaries (e.g., Brave, LibreWolf, VSCodium) while others are built from source (e.g., Ferdium). Check individual package templates in `srcpkgs/` for build details.
+## Add your own packages
 
-## Installation Instructions
+Create one directory per package in `srcpkgs/`, each containing a `template` file.
 
-The easiest way is by adding our repository, which includes pre-built binaries. You can do so by creating a new file and specifying the repository URL.
+Example layout:
 
-```bash
-echo "repository=https://github.com/noid-linux/xbps-repo/releases/latest/download" | sudo tee /etc/xbps.d/noid-xbps-repo.conf
+```text
+srcpkgs/
+  my-package/
+    template
+  my-other-package/
+    template
 ```
 
-Once you've created file above, proceed with installing any packages you want using xbps
+## Use this repository on your systems
+
+```bash
+echo "repository=https://github.com/<your-user>/<your-repo>/releases/latest/download" | sudo tee /etc/xbps.d/personal-xbps.conf
+sudo xbps-install -Su
+```
+
+## Notes
+
+- This setup is intentionally unsigned for convenience in personal setups.
+- If you later want stronger trust guarantees, you can re-enable package/repository signing in workflows.
+
+## Build your package in GitHub Actions
+
+### Option 1: push-based build (automatic)
+
+1. Add/update templates under `srcpkgs/<pkgname>/template`.
+2. Commit and push to your default branch.
+3. The **Build Packages** workflow (`.github/workflows/build.yaml`) runs automatically when `srcpkgs/**` changes.
+
+### Option 2: manual selected build
+
+1. Open **Actions** in GitHub.
+2. Run **Build Selected XBPS Package**.
+3. Provide package names in the `packages` input (comma-separated, e.g. `floorp`).
+
+### Artifacts / release
+
+- CI publishes built `.xbps` packages plus `x86_64-repodata` into the `latest` release.
+- To install `floorp` after publishing:
 
 ```bash
 sudo xbps-install -Su
-sudo xbps-install brave librewolf vscodium obsidian intel-media-driver-nonfree
+sudo xbps-install floorp
 ```
-
-## Available Packages
-
-See [PACKAGES.md](/PACKAGES.md) for the full list of available packages.
-
-## License
-
-This project is released under the MIT License. For more details, see the LICENSE file.
