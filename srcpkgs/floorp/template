@@ -49,7 +49,7 @@ makedepends="
  atk-devel
  at-spi2-atk-devel
  libdrm-devel
- mesa-devel
+ MesaLib-devel
  libevent-devel
  libvpx-devel
  libwebp-devel
