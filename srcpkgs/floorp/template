@@ -1,115 +1,77 @@
 # Template file for 'floorp'
 pkgname=floorp
 version=12.12.0
-revision=1
+revision=2
 archs="x86_64"
-short_desc="Fast, customizable, privacy-focused Firefox-based browser (source build)"
-maintainer="Your Name <you@example.com>"
+build_helper="rust"
+short_desc="Floorp browser (optimized for low-end Zen+ systems)"
+maintainer="you <you@example.com>"
 license="MPL-2.0"
 homepage="https://floorp.app"
 
-# ── Source ────────────────────────────────────────────────────────────────────
 distfiles="https://github.com/Floorp-Projects/Floorp/archive/refs/tags/v${version}.tar.gz"
-checksum="fe0b50524570f1ca6918e44d8b26fc92cb9d421c9693d23333601933845bd6da"
+checksum=fe0b50524570f1ca6918e44d8b26fc92cb9d421c9693d23333601933845bd6da
 
-# ── Build-time deps ───────────────────────────────────────────────────────────
+# ── Build deps ─────────────────────────────────────────────
 hostmakedepends="
- clang
- lld
- llvm
- rust
- cargo
- cbindgen
- python3
- nodejs
- nasm
- yasm
- unzip
- zip
- pkg-config
- autoconf
+ clang lld llvm
+ rust cargo
+ cbindgen python3 nodejs
+ nasm yasm unzip zip pkg-config
 "
 
 makedepends="
- gtk+3-devel
- dbus-devel
- libX11-devel
- libXcomposite-devel
- libXdamage-devel
- libXext-devel
- libXfixes-devel
- libXrandr-devel
- libXt-devel
- alsa-lib-devel
- nss-devel
- nspr-devel
- freetype-devel
- fontconfig-devel
- pango-devel
- atk-devel
- at-spi2-atk-devel
- libdrm-devel
- MesaLib-devel
- libevent-devel
- libvpx-devel
- libwebp-devel
- libpng-devel
- libjpeg-turbo-devel
- icu-devel
- harfbuzz-devel
- zlib-devel
+ gtk+3-devel dbus-devel
+ nss-devel nspr-devel
+ libX11-devel libXcomposite-devel libXdamage-devel
+ libXext-devel libXfixes-devel libXrandr-devel libXt-devel
+ freetype-devel fontconfig-devel pango-devel atk-devel at-spi2-atk-devel
+ libdrm-devel MesaLib-devel
+ libevent-devel libvpx-devel libwebp-devel libpng-devel
+ libjpeg-turbo-devel icu-devel harfbuzz-devel zlib-devel
 "
 
 depends="
- dbus
- gtk+3
- nss
- nspr
+ gtk+3 dbus
+ nss nspr
  alsa-lib
- libX11
- libXcomposite
- libXdamage
- libXext
- libXfixes
- libXrandr
- libXt
- freetype
- fontconfig
- pango
- atk
- at-spi2-atk
- libdrm
  mesa-dri
- desktop-file-utils
- hicolor-icon-theme
+ desktop-file-utils hicolor-icon-theme
 "
 
+# ── Configure ─────────────────────────────────────────────
 do_configure() {
-	cat > ${wrksrc}/.mozconfig << 'MOZCONFIG'
+	cat > .mozconfig << 'EOF'
 ac_add_options --enable-application=browser
 
+# Toolchain
 export CC=clang
 export CXX=clang++
 export AR=llvm-ar
 export NM=llvm-nm
-export RANLIB=llvm-ranlib
 ac_add_options --enable-linker=lld
 
-export CFLAGS="-march=znver1 -mtune=znver1 -O2 -pipe"
-export CXXFLAGS="-march=znver1 -mtune=znver1 -O2 -pipe"
+# ── CPU-specific (Zen+) ──
+export CFLAGS="-O2 -pipe -march=znver1 -mtune=znver1 -fomit-frame-pointer -mavx2 -mfma -mbmi -mbmi2"
+export CXXFLAGS="$CFLAGS"
+export RUSTFLAGS="-C target-cpu=znver1 -C opt-level=3 -C codegen-units=1"
 
-export RUSTFLAGS="-C target-cpu=znver1 -C opt-level=3"
-export RUSTC_OPT_LEVEL=2
+# ── Linker tuning ──
+export LDFLAGS="-Wl,-O2,--as-needed,--gc-sections"
 
-ac_add_options --enable-lto=thin
-ac_add_options MOZ_PGO=1
-
-ac_add_options --enable-release
-ac_add_options --enable-strip
-ac_add_options --enable-install-strip
+# ── Low RAM stability ──
+mk_add_options MOZ_MAKE_FLAGS="-j2"
 ac_add_options --disable-debug
+ac_add_options --disable-debug-symbols
 ac_add_options --disable-tests
+ac_add_options --disable-crashreporter
 
+# ── IMPORTANT: avoid build failures ──
+# NO PGO
+# NO FULL LTO
+ac_add_options --enable-lto=thin
+
+# ── System libraries ──
 ac_add_options --with-system-nss
 ac_add_options --with-system-nspr
 ac_add_options --with-system-libevent
@@ -119,125 +81,86 @@ ac_add_options --with-system-jpeg
 ac_add_options --with-system-png
 ac_add_options --with-system-icu
 ac_add_options --with-system-harfbuzz
-ac_add_options --with-system-av1
 
-ac_add_options --enable-default-toolkit=cairo-gtk3-wayland-only
+# ── Wayland (better for AMD iGPU) ──
+ac_add_options --enable-default-toolkit=cairo-gtk3-wayland
 
-ac_add_options --disable-crashreporter
-ac_add_options --disable-updater
-ac_add_options --disable-maintenance-service
-ac_add_options --disable-backgroundtasks
-
+# ── Build dir ──
 mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-floorp
-mk_add_options MOZ_MAKE_FLAGS="-j${XBPS_MAKEJOBS}"
-MOZCONFIG
+EOF
 }
 
+# ── Build ─────────────────────────────────────────────
 do_build() {
+	export MOZBUILD_STATE_PATH="${wrksrc}/mozbuild"
+	export MACH_BUILD_PYTHON_NATIVE_PACKAGE_SOURCE=system
+	export MOZ_NOSPAM=1
+
 	./mach build
 }
 
+# ── Install ───────────────────────────────────────────
 do_install() {
 	local appdir=/usr/lib/floorp
 
 	./mach package
-	local pkg
-	pkg=$(ls obj-floorp/dist/floorp-*.tar.bz2 2>/dev/null | head -1)
-	if [ -z "$pkg" ]; then
-		vmkdir ${appdir}
-		vcopy obj-floorp/dist/floorp/* ${appdir}/
-	else
-		bsdtar -xf "$pkg" -C ${DESTDIR}/usr/lib/
-	fi
+
+	vmkdir ${appdir}
+	vcopy obj-floorp/dist/floorp/* ${appdir}/
 
 	chmod 755 ${DESTDIR}${appdir}/floorp
 
+	# Wrapper (critical for AMD + low-end)
 	vmkdir usr/bin
-	cat > ${DESTDIR}/usr/bin/floorp << 'WRAPPER'
+	cat > ${DESTDIR}/usr/bin/floorp << 'WRAP'
 #!/bin/sh
 export MOZ_ENABLE_WAYLAND=1
+export MOZ_WAYLAND_USE_VAAPI=1
+export MOZ_X11_EGL=1
 export LIBVA_DRIVER_NAME=radeonsi
 export MOZ_DISABLE_RDD_SANDBOX=1
 export NO_AT_BRIDGE=1
-export MOZ_DBUS_REMOTE=1
 exec /usr/lib/floorp/floorp "$@"
-WRAPPER
+WRAP
 	chmod 755 ${DESTDIR}/usr/bin/floorp
 
+	# Desktop entry
 	vmkdir usr/share/applications
-	cat > ${DESTDIR}/usr/share/applications/floorp.desktop << 'DESKTOP'
+	cat > ${DESTDIR}/usr/share/applications/floorp.desktop << 'DESK'
 [Desktop Entry]
-Version=1.0
 Name=Floorp
-GenericName=Web Browser
-Comment=Fast, customizable, privacy-focused web browser
 Exec=floorp %u
 Icon=floorp
-Terminal=false
 Type=Application
 Categories=Network;WebBrowser;
-MimeType=text/html;text/xml;application/xhtml+xml;x-scheme-handler/http;x-scheme-handler/https;
-StartupNotify=true
-StartupWMClass=floorp
-Actions=new-window;new-private-window;
+DESK
 
-[Desktop Action new-window]
-Name=New Window
-Exec=floorp --new-window
-
-[Desktop Action new-private-window]
-Name=New Private Window
-Exec=floorp --private-window
-DESKTOP
-
+	# Icons
 	for size in 16 32 48 64 128; do
-		local icondir="usr/share/icons/hicolor/${size}x${size}/apps"
-		vmkdir ${icondir}
+		vmkdir usr/share/icons/hicolor/${size}x${size}/apps
 		if [ -f "${DESTDIR}${appdir}/browser/chrome/icons/default/default${size}.png" ]; then
 			vinstall "${DESTDIR}${appdir}/browser/chrome/icons/default/default${size}.png" \
-				644 ${icondir} floorp.png
+				644 usr/share/icons/hicolor/${size}x${size}/apps floorp.png
 		fi
 	done
 
+	# ── Low-end performance prefs ──
 	vmkdir ${appdir}/defaults/pref
 	cat > ${DESTDIR}${appdir}/defaults/pref/lowend.js << 'PREFS'
-pref("dom.ipc.processCount",                         2);
-pref("dom.ipc.processCount.webIsolated",             1);
-pref("media.ffmpeg.vaapi.enabled",                   true);
-pref("media.hardware-video-decoding.force-enabled",  true);
-pref("ui.prefersReducedMotion",                      1);
-pref("toolkit.cosmeticAnimations.enabled",           false);
-pref("browser.tabs.remote.warmup.enabled",           false);
-pref("browser.tabs.remote.warmup.maxTabs",           0);
-pref("network.prefetch-next",                        false);
-pref("network.dns.disablePrefetch",                  true);
-pref("network.http.speculative-parallel-limit",      0);
-pref("network.predictor.enabled",                    false);
-pref("browser.cache.disk.enable",                    true);
-pref("browser.cache.memory.enable",                  true);
-pref("browser.cache.memory.capacity",                32768);
-pref("browser.cache.disk.capacity",                  262144);
-pref("browser.sessionstore.interval",                60000);
-pref("browser.sessionstore.max_tabs_undo",           5);
-pref("browser.sessionstore.max_windows_undo",        1);
-pref("toolkit.telemetry.enabled",                    false);
-pref("toolkit.telemetry.unified",                    false);
-pref("datareporting.healthreport.uploadEnabled",     false);
-pref("datareporting.policy.dataSubmissionEnabled",   false);
-pref("breakpad.reportURL",                           "");
-pref("browser.crashReports.unsubmittedCheck.enabled", false);
-pref("extensions.pocket.enabled",                    false);
-pref("extensions.screenshots.disabled",              true);
+pref("dom.ipc.processCount", 2);
+pref("media.ffmpeg.vaapi.enabled", true);
+pref("media.hardware-video-decoding.force-enabled", true);
+pref("network.predictor.enabled", false);
+pref("network.prefetch-next", false);
+pref("toolkit.telemetry.enabled", false);
+pref("browser.cache.disk.enable", true);
+pref("browser.cache.memory.enable", true);
+pref("browser.sessionstore.interval", 60000);
+pref("toolkit.cosmeticAnimations.enabled", false);
 PREFS
 }
 
 post_install() {
-	update-desktop-database usr/share/applications 2>/dev/null || true
-	gtk-update-icon-cache -f -t usr/share/icons/hicolor 2>/dev/null || true
-	xbps-alternatives --group x-www-browser --add floorp:/usr/bin/floorp 2>/dev/null || true
-}
-
-post_remove() {
 	update-desktop-database usr/share/applications 2>/dev/null || true
 	gtk-update-icon-cache -f -t usr/share/icons/hicolor 2>/dev/null || true
 }
