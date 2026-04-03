@@ -28,6 +28,7 @@ hostmakedepends="
  zip
  pkg-config
  autoconf
+ curl
 "
 
 makedepends="
