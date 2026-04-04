@@ -20,10 +20,10 @@ depends="libcap-progs swaybg xorg-server-xwayland libxkbcommon>=1.5.0_1"
 short_desc="Tiling Wayland compositor compatible with i3"
 maintainer="Ord <oan@voiux.org>"
 license="MIT"
-homepage="https://swaywm.org"
-changelog="https://github.com/swaywm/sway/releases"
-distfiles="git+https://github.com/dawsers/scroll.git#tag=${version}"
-checksum=SKIP
+homepage="https://github.com/dawsers/scroll"
+changelog="https://github.com/dawsers/scroll/releases"
+distfiles="https://github.com/dawsers/scroll/archive/refs/tags/v${version}.tar.gz"
+checksum=b3c03def43ddf7bac3a18fe0be6600aee06d1c8b10b423c12be4e85b74b97c3d
 
 post_install() {
 	vlicense LICENSE
