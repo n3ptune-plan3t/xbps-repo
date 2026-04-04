@@ -1,5 +1,5 @@
 # Template file for 'scroll'
-pkgname=sway
+pkgname=scroll
 version=1.12.8
 revision=1
 build_style=meson
