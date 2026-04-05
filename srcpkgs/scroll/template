@@ -26,6 +26,39 @@ changelog="https://github.com/dawsers/scroll/releases"
 distfiles="https://github.com/dawsers/scroll/archive/refs/tags/${version}.tar.gz"
 checksum=b3c03def43ddf7bac3a18fe0be6600aee06d1c8b10b423c12be4e85b74b97c3d
 
+pkgname=scroll
+version=1.12.8
+revision=1
+build_style=meson
+configure_args="-Dwerror=false -Db_ndebug=false"
+conf_files="/etc/scroll/config"
+hostmakedepends="pkg-config wayland-devel glslang hwids scdoc"
+_devel_depends="lcms2-devel libgbm-devel libglvnd-devel libseat-devel eudev-libudev-devel
+ libdrm-devel libinput-devel libxkbcommon-devel pixman-devel wayland-devel
+ wayland-protocols vulkan-loader-devel xcb-util-errors-devel
+ xcb-util-wm-devel xcb-util-renderutil-devel libdisplay-info-devel libliftoff-devel"
+makedepends="${_devel_depends}
+ libxcb-devel xcb-util-cursor-devel xcb-util-devel xcb-util-image-devel
+ xcb-util-keysyms-devel xcb-util-xrm-devel xorg-server-xwayland pcre2-devel json-c-devel pango-devel cairo-devel
+ gdk-pixbuf-devel libevdev-devel git cmake lua-devel"
+depends="libcap-progs swaybg xorg-server-xwayland libxkbcommon>=1.5.0_1 lua"
+short_desc="Tiling Wayland compositor compatible with i3"
+maintainer="Ord <oan@voiux.org>"
+license="MIT"
+homepage="https://github.com/dawsers/scroll"
+changelog="https://github.com/dawsers/scroll/releases"
+distfiles="https://github.com/dawsers/scroll/archive/refs/tags/${version}.tar.gz"
+checksum=b3c03def43ddf7bac3a18fe0be6600aee06d1c8b10b423c12be4e85b74b97c3d
+
+pre_configure() {
+	# Use lua54 instead of lua53 for this build
+	xbps-alternatives -s lua lua54
+}
+
+post_install() {
+	vlicense LICENSE
+}
+
 post_install() {
 	vlicense LICENSE
 }
