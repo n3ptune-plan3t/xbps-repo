@@ -15,9 +15,9 @@ _devel_depends="lcms2-devel libgbm-devel libglvnd-devel libseat-devel eudev-libu
 makedepends="${_devel_depends}
  libxcb-devel xcb-util-cursor-devel xcb-util-devel xcb-util-image-devel
  xcb-util-keysyms-devel xcb-util-xrm-devel xorg-server-xwayland pcre2-devel json-c-devel pango-devel cairo-devel
- gdk-pixbuf-devel libevdev-devel git cmake lua-devel"
+ gdk-pixbuf-devel libevdev-devel git cmake lua54-devel"
 
-depends="libcap-progs swaybg xorg-server-xwayland libxkbcommon>=1.5.0_1 lua"
+depends="libcap-progs swaybg xorg-server-xwayland libxkbcommon>=1.5.0_1 lua54"
 short_desc="Tiling Wayland compositor compatible with i3"
 maintainer="Ord <oan@voiux.org>"
 license="MIT"
